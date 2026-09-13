@@ -1,0 +1,190 @@
+services:
+
+  # =========================================================
+  # DATABASES
+  # =========================================================
+
+  identity-db:
+    image: postgres:17-alpine
+    container_name: identity-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${IDENTITY_DB_NAME}
+      POSTGRES_USER: ${IDENTITY_DB_USER}
+      POSTGRES_PASSWORD: ${IDENTITY_DB_PASSWORD}
+    volumes:
+      - identity_db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  rbac-db:
+    image: postgres:17-alpine
+    container_name: rbac-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${RBAC_DB_NAME}
+      POSTGRES_USER: ${RBAC_DB_USER}
+      POSTGRES_PASSWORD: ${RBAC_DB_PASSWORD}
+    volumes:
+      - rbac_db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  sync-db:
+    image: postgres:17-alpine
+    container_name: sync-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SYNC_DB_NAME}
+      POSTGRES_USER: ${SYNC_DB_USER}
+      POSTGRES_PASSWORD: ${SYNC_DB_PASSWORD}
+    volumes:
+      - sync_db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  audit-db:
+    image: postgres:17-alpine
+    container_name: audit-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AUDIT_DB_NAME}
+      POSTGRES_USER: ${AUDIT_DB_USER}
+      POSTGRES_PASSWORD: ${AUDIT_DB_PASSWORD}
+    volumes:
+      - audit_db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  # =========================================================
+  # MESSAGE BROKER
+  # =========================================================
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+
+  # =========================================================
+  # OBJECT STORAGE
+  # =========================================================
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - backend
+
+  # =========================================================
+  # API GATEWAY
+  # =========================================================
+
+  api-gateway:
+    build:
+      context: ./servicios/api-gateway
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+
+  # =========================================================
+  # IDENTITY SERVICE
+  # =========================================================
+
+  identity-service:
+    build:
+      context: ./servicios/identity-service
+    container_name: identity-service
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # =========================================================
+  # RBAC SERVICE
+  # =========================================================
+
+  rbac-service:
+    build:
+      context: ./servicios/rbac-service
+    container_name: rbac-service
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # =========================================================
+  # SYNC SERVICE
+  # =========================================================
+
+  sync-service:
+    build:
+      context: ./servicios/sync-service
+    container_name: sync-service
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # =========================================================
+  # AUDIT SERVICE
+  # =========================================================
+
+  audit-service:
+    build:
+      context: ./servicios/audit-service
+    container_name: audit-service
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # =========================================================
+  # EXCEL WORKER
+  # =========================================================
+
+  excel-worker:
+    build:
+      context: ./servicios/excel-worker
+    container_name: excel-worker
+    restart: unless-stopped
+    networks:
+      - backend
+
+# =========================================================
+# VOLUMES
+# =========================================================
+
+volumes:
+  identity_db_data:
+  rbac_db_data:
+  sync_db_data:
+  audit_db_data:
+  rabbitmq_data:
+  minio_data:
+
+# =========================================================
+# NETWORK
+# =========================================================
+
+networks:
+  backend:
+    driver: bridge
